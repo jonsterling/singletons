@@ -38,6 +38,7 @@ import Data.Singletons.Promote
 import Language.Haskell.TH
 import GHC.Exts
 import Data.Singletons.Util
+import qualified GHC.TypeLits as TL
 
 -- Declarations of singleton structures
 data family Sing (a :: k)
@@ -58,6 +59,24 @@ data SingInstance (a :: k) where
   SingInstance :: SingRep a => SingInstance a
 class (b ~ Any) => SingKind (b :: k) where
   singInstance :: forall (a :: k). Sing a -> SingInstance a
+
+
+data instance Sing (n :: TL.Nat) = NatLit Integer
+data instance Sing (n :: TL.Symbol) = SymbolLit String
+
+instance TL.SingI n => SingI (n :: TL.Nat) where
+  sing = NatLit (TL.fromSing (TL.sing :: TL.Sing n))
+
+instance TL.SingI n => SingE (n :: TL.Nat) where
+  type Demote n = Integer
+  fromSing _ = TL.fromSing (TL.sing :: TL.Sing n)
+
+instance TL.SingI s => SingI (s :: TL.Symbol) where
+  sing = SymbolLit (TL.fromSing (TL.sing :: TL.Sing s))
+
+instance TL.SingI s => SingE (s :: TL.Symbol) where
+  type Demote s = String
+  fromSing _ = TL.fromSing (TL.sing :: TL.Sing s)
 
 -- provide a few useful singletons...
 $(genSingletons [''Bool, ''Maybe, ''Either, ''[]])

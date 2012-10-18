@@ -94,9 +94,13 @@ promoteType :: Type -> Q Kind
 promoteType (ForallT tvbs [] ty) = promoteType ty -- ForallKinds
 promoteType (ForallT _ (_:_) _) = fail "Cannot promote type with constrained variables"
 promoteType (VarT name) = return $ VarT name
-promoteType (ConT name) = return $ if (nameBase name) == "TypeRep" ||
-                                      (nameBase name) == (nameBase repName)
-                                     then StarT else ConT name
+promoteType (ConT name) = case (nameBase name) of
+  "String"  -> conT $ mkName "Symbol"
+  "Integer" -> conT $ mkName "Nat"
+  "Int"     -> conT $ mkName "Nat"
+  _         -> if (nameBase name) == "TypeRep" ||
+                  (nameBase name) == (nameBase repName)
+               then return StarT else conT name
 promoteType (TupleT n) = return $ TupleT n
 promoteType (UnboxedTupleT n) = fail "Promotion of unboxed tuples not supported"
 promoteType ArrowT = return ArrowT
@@ -499,7 +503,7 @@ promoteExp vars (VarE name) = case Map.lookup name vars of
   Just ty -> return ty
   Nothing -> return $ promoteVal name
 promoteExp vars (ConE name) = return $ promoteDataCon name
-promoteExp vars (LitE lit) = fail "Promotion of literal expressions not supported"
+promoteExp vars (LitE lit) = promoteLitExp vars lit
 promoteExp vars (AppE exp1 exp2) = do
   ty1 <- promoteExp vars exp1
   ty2 <- promoteExp vars exp2
@@ -546,3 +550,9 @@ promoteExp vars (RecConE name fields) =
   fail "Promotion of record construction not yet supported"
 promoteExp vars (RecUpdE exp fields) =
   fail "Promotion of record updates not yet supported"
+
+promoteLitExp :: TypeTable -> Lit -> QWithDecs Type
+promoteLitExp vars (StringL str) = return $ LitT (StrTyLit str)
+promoteLitExp vars (IntegerL i) = return $ LitT (NumTyLit i)
+promoteLitExp vars (IntPrimL i) = return $ LitT (NumTyLit i)
+promoteLitExp vars _ = fail "Promotion of literal expressions other than strings and naturals not supported"

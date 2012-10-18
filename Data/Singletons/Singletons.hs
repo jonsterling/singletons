@@ -8,6 +8,7 @@ types. It is an internal module to the singletons package.
 -}
 
 {-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Data.Singletons.Singletons where
 
@@ -452,7 +453,7 @@ singTypeRec ctx pos (AppT ty1 ty2) =
   singTypeRec (ty2 : ctx) pos ty1 -- recur with the ty2 in the applied context
 singTypeRec ctx pos (SigT ty knd) =
   fail "Singling of types with explicit kinds not yet supported"
-singTypeRec ctx pos (LitT _) = fail "Singling of type-level literals not yet supported"
+singTypeRec ctx pos (LitT t) = return $ \ty -> AppT singFamily ty
 singTypeRec ctx pos (PromotedT _) =
   fail "Singling of promoted data constructors not yet supported"
 singTypeRec ctx pos (PromotedTupleT _) =
@@ -541,8 +542,11 @@ singExp vars (VarE name) = case Map.lookup name vars of
   Just exp -> return exp
   Nothing -> return (singVal name)
 singExp vars (ConE name) = return $ smartCon name
-singExp vars (LitE lit) =
-  fail "Singling of literal expressions not yet supported"
+singExp vars (LitE lit) = case lit of
+  StringL str -> sigE (dyn "sing") (appT (conT (mkName "Sing")) (litT (strTyLit str)))
+  IntegerL str -> sigE (dyn "sing") (appT (conT (mkName "Sing")) (litT (numTyLit str)))
+  _ -> fail "Singling of literal expressions not entirely supported"
+
 singExp vars (AppE exp1 exp2) = do
   exp1' <- singExp vars exp1
   exp2' <- singExp vars exp2

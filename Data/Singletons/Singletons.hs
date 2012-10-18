@@ -419,12 +419,12 @@ singTypeRec [] pos (ForallT _ [] ty) = -- Sing makes handling foralls automatic
   singTypeRec [] pos ty
 singTypeRec (_:_) pos (VarT _) =
   fail "Singling of type variables of arrow kinds not yet supported"
-singTypeRec [] pos (VarT name) = 
-  return $ \ty -> AppT singFamily ty
+singTypeRec [] pos (VarT name) =
+  return $ AppT singFamily
 singTypeRec ctx pos (ConT name) = -- we don't need to process the context with Sing
-  return $ \ty -> AppT singFamily ty
+  return $ AppT singFamily
 singTypeRec ctx pos (TupleT n) = -- just like ConT
-  return $ \ty -> AppT singFamily ty
+  return $ AppT singFamily
 singTypeRec ctx pos (UnboxedTupleT n) =
   fail "Singling of unboxed tuple types not yet supported"
 singTypeRec ctx pos ArrowT = case ctx of
@@ -448,12 +448,12 @@ singTypeRec ctx pos ArrowT = case ctx of
           extractPolyKinds _ _ = []
   _ -> fail "Internal error in Sing: converting ArrowT with improper context"
 singTypeRec ctx pos ListT =
-  return $ \ty -> AppT singFamily ty
+  return $ AppT singFamily
 singTypeRec ctx pos (AppT ty1 ty2) =
   singTypeRec (ty2 : ctx) pos ty1 -- recur with the ty2 in the applied context
 singTypeRec ctx pos (SigT ty knd) =
   fail "Singling of types with explicit kinds not yet supported"
-singTypeRec ctx pos (LitT t) = return $ \ty -> AppT singFamily ty
+singTypeRec ctx pos (LitT t) = return $ AppT singFamily
 singTypeRec ctx pos (PromotedT _) =
   fail "Singling of promoted data constructors not yet supported"
 singTypeRec ctx pos (PromotedTupleT _) =
